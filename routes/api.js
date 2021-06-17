@@ -16,7 +16,10 @@ module.exports = function (app) {
   app.route('/api/books')
     .get(async function (req, res) {
       try {
-        await Book.find({}).orFail('no data');
+        await Book.find({}, (err, data) => {
+          if (err) throw { error: 'no data' }
+          return res.json(data);
+        })
       } catch (error) {
         console.log(error)
       }
@@ -46,8 +49,10 @@ module.exports = function (app) {
       }
     })
 
-    .delete(function (req, res) {
+    .delete(async function (req, res) {
       //if successful response will be 'complete delete successful'
+      await Book.deleteMany({});
+      res.send('complete delete successful');
     });
 
 
@@ -57,25 +62,62 @@ module.exports = function (app) {
       try {
         let bookid = req.params.id;
 
-        if (!bookid) throw 'no book exists';
+        if (!bookid) throw new Error('no book exists');
 
         let book = await Book.findById({ _id: bookid }).orFail('no book exists');
         res.json(book);
       } catch (error) {
         console.log(error);
-        return error.name === 'CastError' ? res.send('no book exists') : res.send(error);
+        return error.name === 'CastError' ? res.send(error.message) : res.send(error);
       }
     })
 
-    .post(function (req, res) {
+    .post(async function (req, res) {
       let bookid = req.params.id;
       let comment = req.body.comment;
-      //json res format same as .get
+      try {
+        // console.log(req.body)
+
+        if (!comment) throw 'missing required field comment';
+
+        let book = await Book.findOneAndUpdate(
+          { _id: bookid },
+          {
+            $push: { "comments": comment },
+            $inc: {
+              "commentcount": 1,
+              "__v": 1
+            }
+          },
+          { new: true }
+        );
+
+        if (book === null) throw 'no book exists'
+        // let data = await book.save();
+        console.log(book)
+
+        res.json(book);
+      } catch (error) {
+        console.log(error);
+        return error.name === 'CastError' ? res.send('no book exists') : res.send(error);
+      }
+
     })
 
-    .delete(function (req, res) {
-      let bookid = req.params.id;
-      //if successful response will be 'delete successful'
+    .delete(async function (req, res) {
+      try {
+        let bookid = req.params.id;
+        if (!bookid) throw 'no book exists'
+        let book = await Book.findByIdAndRemove(bookid);
+
+        if (book === null) throw 'no book exists';
+        console.log(book)
+
+        return res.send('delete successful');
+      } catch (error) {
+        console.log(error);
+        return error.name === 'CastError' ? res.send('no book exists') : res.send(error);
+      }
     });
 
 };

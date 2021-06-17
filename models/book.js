@@ -9,9 +9,10 @@ const bookSchema = new Schema({
 });
 
 // increment Mongoose document versions and comment count on each update
-bookSchema.pre('findOneAndUpdate', function(next) {
-	this.findOneAndUpdate({}, { $inc: { __v: 1, commentcount: 1 }, next });
-})
+// bookSchema.pre('findOneAndUpdate', async function(next) {
+// 	await this.findOneAndUpdate({}, { $inc: { __v: 1, commentcount: 1 }});
+// 	next();
+// })
 
 const Book = mongoose.model('Book', bookSchema);
 
